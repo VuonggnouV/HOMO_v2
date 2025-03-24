@@ -18,17 +18,16 @@
             <h2>Vui lòng nhập lộ trình của bạn</h2>
                 <!-- Địa điểm gửi hàng -->
                 <label for="province">Địa điểm nhận hàng</label>
-                <select id="province" name="province">
-                    <option value="">Tỉnh</option>
-                    <!-- Add options dynamically -->
+                <select id="province" name="province" onchange="updateCities()">
+                    <option value="">Chọn tỉnh</option>
                 </select>
-
                 <select id="city" name="city">
-                    <option value="">Thành Phố</option>
-                    <!-- Add options dynamically -->
+                    <option value="">Chọn thành phố</option>
                 </select>
+                
 
-                <input type="text" id="address" name="address" placeholder="Địa chỉ chi tiết">
+                <input type="text" id="address-detail2" name="address" placeholder="Địa chỉ chi tiết">
+                <div id="address-detail2-dropdown" class="autocomplete-dropdown"></div>
 
                 <!-- Chi tiết địa điểm -->
                 <label for="location-type">Chi tiết địa điểm</label>
@@ -55,5 +54,75 @@
             <img src="static/map.png" alt="Map">
         </div>
     </div>
+    <script src="static/scripts2.js"></script> <!-- Link đến script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let addressInput = document.getElementById("address-detail2");
+            let savedTo = localStorage.getItem("to");
+    
+            if (addressInput && savedTo) {
+                addressInput.value = savedTo; // Tự động điền địa chỉ "Đến"
+            }
+
+            // Gợi ý địa chỉ
+            addressInput.addEventListener("input", function() {
+                debounceFetch(this.value, "address-detail2");
+            });
+        });
+
+        // Debounce và fetch gợi ý địa chỉ
+        let debounceTimer;
+        let isFetching = false;
+
+        function debounceFetch(query, inputId) {
+            clearTimeout(debounceTimer);
+            if (query.length < 3) return;
+
+            debounceTimer = setTimeout(() => {
+                if (!isFetching) {
+                    fetchSuggestions(query, inputId);
+                }
+            }, 500); // Trì hoãn 500ms
+        }
+
+        async function fetchSuggestions(query, inputId) {
+            let dropdown = document.getElementById(inputId + "-dropdown");
+            dropdown.innerHTML = "<div class='dropdown-item'>Đang tìm kiếm...</div>";
+            dropdown.style.display = "block";
+
+            isFetching = true;
+
+            try {
+                const response = await fetch(`/address_suggestions?query=${query}`);
+                const suggestions = await response.json();
+                dropdown.innerHTML = "";
+
+                if (suggestions.length === 0) {
+                    dropdown.style.display = "none";
+                    isFetching = false;
+                    return;
+                }
+
+                suggestions.forEach(addr => {
+                    let div = document.createElement("div");
+                    div.classList.add("dropdown-item");
+                    div.innerHTML = addr;
+                    div.onclick = function() {
+                        document.getElementById(inputId).value = addr;
+                        dropdown.innerHTML = "";
+                        dropdown.style.display = "none";
+                    };
+                    dropdown.appendChild(div);
+                });
+            } catch (error) {
+                console.error("Lỗi lấy gợi ý:", error);
+                dropdown.innerHTML = "<div class='dropdown-item'>Không thể lấy dữ liệu</div>";
+            } finally {
+                isFetching = false;
+            }
+        }
+    </script>
+    
+    
 </body>
 </html>

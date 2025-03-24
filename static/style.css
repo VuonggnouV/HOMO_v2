@@ -75,8 +75,7 @@ header {
 .btn-group button {
     width: 120px; /* Hoặc kích thước mà bạn muốn */
     padding: 10px 0; /* Padding dọc cho nút */
-    background-color: #a60102
-    ;
+    background-color: #a60102;
     color: white;
     font-size: 16px;
     border: none;

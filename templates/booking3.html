@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking</title>
-    <link rel="stylesheet" href="static/booking3.css"> <!-- Link to the CSS file -->
+    <link rel="stylesheet" href="static/booking3.css">
 </head>
 <body>
-    <!-- Logo Section (on top) -->
     <div class="logo">
         <img src="static/image.png" alt="HomeMoving Logo">
     </div>
@@ -15,49 +14,52 @@
     <div class="container">
         <div class="form-section">
             <form id="booking-form">
-                <h2>Bạn có muốn chọn thêm các dịch vụ?</h2>
-
-                <div class="checkbox-group">
-                    <label for="service-1">
-                        <input type="checkbox" id="service-1" name="service-1" data-price="100000" data-rule="random1">
-                        Hỗ trợ bốc vác, khiên đồ 
-                    </label>
-
-                    <label for="service-2">
-                        <input type="checkbox" id="service-2" name="service-2" data-price="50000" data-rule="plus50k">
-                        Phí đóng gói
-                    </label>
-
-                    <label for="service-3">
-                        <input type="checkbox" id="service-3" name="service-3" data-price="0" data-rule="percent2">
-                        Bảo hiểm hàng hóa điện tử
-                    </label>
-
-                    <label for="service-4">
-                        <input type="checkbox" id="service-4" name="service-4" data-price="1000" data-rule="random2">
-                        Bảo hiểm hàng dễ vỡ
-                    </label>
-                </div>
-
-                <!-- Thành tiền -->
-                <img id="loading" src="static/loading.webp" alt="Loading..." style="display: none;" />
-
-                <div id="price-display">
-                    <span id="price"></span>
-                </div>
+                <h1>THÔNG TIN ĐẶT XE</h1>
                 
-                <!-- Thông báo thành công -->
-                <div id="success-message">
+                <label for="name">Họ và tên:</label>
+                <input type="text" id="name" placeholder="Nhập họ và tên">
+                
+                <label for="phone">Số điện thoại:</label>
+                <input type="text" id="phone" placeholder="Nhập số điện thoại">
+
+                <!-- Mã giảm giá -->
+                <label for="voucher">Mã giảm giá (nếu có):</label>
+                <input type="text" id="voucher" placeholder="Nhập mã đơn hàng (Voucher)">
+                <p id="voucher-message" style="color: red; font-weight: bold;"></p>
+                
+                <p class="info-location"><strong>Từ:</strong> <span id="display-from"></span></p>
+                <p class="info-location"><strong>Đến:</strong> <span id="display-to"></span></p>
+                <p class="info-box"><strong>Khoảng cách:</strong> <span id="distance-display"></span> KM</p>
+                <p class="info-box"><strong>Giá tiền:</strong> <span id="price-display"></span></p>
+
+                <h2>Bạn có muốn chọn thêm các dịch vụ?</h2>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" class="service-option" value="50000"> Hỗ trợ bốc xếp
+                    </label>
+                    <label>
+                        <input type="checkbox" class="service-option" value="1000"> Bảo hiểm hàng hóa giá trị < 5.000.000 vnđ trở xuống 
+                    </label>
+                    <label>
+                        <input type="checkbox" class="service-option" value="2000"> Bảo hiểm hàng hóa giá trị từ < 5.000.000 đến 10.000.000 vnđ
+                    </label>
+                    <label>
+                        <input type="checkbox" class="service-option" value="10000"> Bảo hiểm hàng hóa giá trị < 10.000.000 đến 30.000.000 vnđ
+                    </label>
+                </div>
+
+                <img id="loading" src="static/loading.webp" alt="Loading..." style="display: none;" />
+                <p class="price-info"><strong>Tổng giá tiền:</strong> <span id="final-price"></span></p>
+                
+                <div id="success-message" style="display: none;">
                     Đặt xe thành công!<br>
                     Mã đơn hàng: <strong><span id="order-id"></span></strong>
                 </div>
-        
-                <!-- Submit button -->
+                
                 <button type="submit">ĐẶT NGAY</button>
             </form>
         </div>
 
-        <!-- Map section -->
         <div class="map-section">
             <img src="static/map.png" alt="Map">
         </div>
@@ -65,72 +67,170 @@
     
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Lấy tất cả các checkbox trong form hiện tại
-            var checkboxesUnique = document.querySelectorAll('input[type="checkbox"]');
+            document.getElementById("display-from").textContent = localStorage.getItem("from") || "";
+            document.getElementById("display-to").textContent = localStorage.getItem("to") || "";
+            let distance = localStorage.getItem("distance") || "0";
+            let price = parseInt(localStorage.getItem("price")) || 0;
 
-            // Lấy phần tử hiển thị ảnh loading và giá cho form này
-            var loadingElementUnique = document.getElementById('loading'); // Phần tử cho ảnh loading
-            var priceElementUnique = document.getElementById('price');
-            var priceDisplayUnique = document.getElementById('price-display');
-            var successMessage = document.getElementById('success-message'); // Phần tử thông báo thành công
-            var orderIdElement = document.getElementById('order-id'); // Phần tử hiển thị mã đơn hàng
+            document.getElementById("distance-display").textContent = `${distance}`;
+            document.getElementById("price-display").textContent = `${price.toLocaleString("vi-VN")} VNĐ`;
 
-            // Thời gian hiển thị loading (3 giây)
-            var timeoutUnique;
+            let basePrice = price;
+            let voucherDiscount = 0;
+            let validVoucher = false;
 
-            // Hàm kiểm tra và cập nhật giá khi chọn hoặc bỏ chọn checkbox
-            function updateUniquePrice() {
-                // Nếu đang có timeout trước đó, hãy xóa nó
-                if (timeoutUnique) {
-                    clearTimeout(timeoutUnique);
+            let serviceOptions = document.querySelectorAll(".service-option");
+            let hasLoading = 0;
+            let insuranceType = 0;
+
+            serviceOptions.forEach(option => {
+                option.addEventListener("change", updatePrice);
+            });
+
+            function updatePrice() {
+                let totalPrice = basePrice;
+                hasLoading = 0;
+                insuranceType = 0;
+
+                serviceOptions.forEach(option => {
+                    if (option.checked) {
+                        totalPrice += parseInt(option.value);
+                        if (option.value == "50000") {
+                            hasLoading = 1;
+                        } else {
+                            insuranceType = option.value;
+                        }
+                    }
+                });
+
+                if (validVoucher) {
+                    voucherDiscount = Math.min(Math.floor(totalPrice * 0.2), 30000);
+                } else {
+                    voucherDiscount = 0;
                 }
 
-                // Hiển thị ảnh loading và ẩn giá
-                loadingElementUnique.style.display = 'inline-block'; // Hiển thị ảnh loading
-                priceDisplayUnique.style.display = 'none'; // Ẩn giá trong lúc loading
+                const newTotal = totalPrice - voucherDiscount;
 
-                // Đặt timeout để hiển thị giá sau 3 giây
-                timeoutUnique = setTimeout(function() {
-                    var totalPriceUnique = 0;
-
-                    // Duyệt qua tất cả các checkbox để kiểm tra xem checkbox nào được chọn
-                    checkboxesUnique.forEach(function(checkbox) {
-                        if (checkbox.checked) {
-                            // Random giá cho mỗi checkbox được chọn
-                            totalPriceUnique += Math.floor(Math.random() * (700000 - 100000 + 1)) + 100000;
-                        }
-                    });
-
-                    if (totalPriceUnique > 0) {
-                        priceElementUnique.textContent = totalPriceUnique.toLocaleString('vi-VN') + ' đ';
-                        priceDisplayUnique.style.display = 'block'; // Hiển thị giá
-                    } else {
-                        priceDisplayUnique.style.display = 'none'; // Ẩn giá nếu không có checkbox nào được chọn
-                    }
-
-                    // Ẩn ảnh loading
-                    loadingElementUnique.style.display = 'none';
-                }, 2000); // Hiện giá sau 2 giây
+                document.getElementById("loading").style.display = "block";
+                setTimeout(() => {
+                    document.getElementById("loading").style.display = "none";
+                    document.getElementById("final-price").textContent =
+                        totalPrice.toLocaleString("vi-VN") + " VNĐ"
+                        + (voucherDiscount > 0 ? ` - ${voucherDiscount.toLocaleString("vi-VN")} VNĐ = ${newTotal.toLocaleString("vi-VN")} VNĐ` : '');
+                }, 1000);
             }
 
-            // Lắng nghe sự kiện thay đổi trên tất cả checkbox
-            checkboxesUnique.forEach(function(checkbox) {
-                checkbox.addEventListener('change', updateUniquePrice);
+            document.getElementById("voucher").addEventListener("input", function () {
+                const voucherCode = this.value.trim();
+                const messageEl = document.getElementById("voucher-message");
+
+                if (voucherCode === "") {
+                    validVoucher = false;
+                    voucherDiscount = 0;
+                    messageEl.textContent = "";
+                    updatePrice();
+                    return;
+                }
+
+                fetch("/validate_voucher?code=" + voucherCode)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.valid) {
+                            validVoucher = true;
+                            messageEl.style.color = "green";
+                            messageEl.textContent = "Mã giảm giá hợp lệ: Giảm 20%, tối đa 30.000đ";
+                        } else {
+                            validVoucher = false;
+                            voucherDiscount = 0;
+                            messageEl.style.color = "red";
+                            if (data.reason === "used") {
+                                messageEl.textContent = "Mã giảm giá đã được sử dụng";
+                            } else {
+                                messageEl.textContent = "Mã giảm giá không hợp lệ";
+                            }
+                        }
+                        updatePrice();
+                    });
+
             });
 
-            // Chặn hành vi submit form và hiển thị thông báo đặt thành công
-            var form = document.getElementById('booking-form');
-            form.addEventListener('submit', function(event) {
-                event.preventDefault(); // Ngăn chặn gửi form
+            var form = document.getElementById("booking-form");
+            form.addEventListener("submit", function(event) {
+                event.preventDefault();
 
-                // Tạo mã đơn hàng ngẫu nhiên (6 chữ số)
+                var name = document.getElementById("name").value.trim();
+                var phone = document.getElementById("phone").value.trim();
+
+                if (name === "" || phone === "") {
+                    alert("Vui lòng nhập đầy đủ họ tên và số điện thoại!");
+                    return;
+                }
+
+                var phoneRegex = /^[0-9]{9,11}$/;
+                if (!phoneRegex.test(phone)) {
+                    alert("Số điện thoại không hợp lệ! Vui lòng nhập số có 9-11 chữ số.");
+                    return;
+                }
+
                 var orderId = Math.floor(100000 + Math.random() * 900000);
-                orderIdElement.textContent = orderId; // Gán mã đơn hàng cho phần tử
+                let totalPrice = basePrice;
 
-                // Hiển thị thông báo thành công
-                successMessage.style.display = 'block';
+                serviceOptions.forEach(option => {
+                    if (option.checked) {
+                        totalPrice += parseInt(option.value);
+                        if (option.value == "50000") {
+                            hasLoading = 1;
+                        } else {
+                            insuranceType = option.value;
+                        }
+                    }
+                });
 
+                if (validVoucher) {
+                    voucherDiscount = Math.min(Math.floor(totalPrice * 0.2), 30000);
+                } else {
+                    voucherDiscount = 0;
+                }
+
+                let newTotal = totalPrice - voucherDiscount;
+
+                var bookingData = {
+                    order_id: orderId,
+                    name: name,
+                    phone: phone,
+                    from: localStorage.getItem("from"),
+                    to: localStorage.getItem("to"),
+                    has_loading: hasLoading,
+                    insurance_type: insuranceType,
+                    total_price: newTotal,
+                    original_price: totalPrice,
+                    voucher_code: document.getElementById("voucher").value.trim(),
+                    voucher_discount: voucherDiscount
+                };
+
+                fetch("/submit_booking", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bookingData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert("Lỗi: " + data.error);
+                    } else {
+                        document.getElementById("order-id").textContent = orderId;
+                        document.getElementById("success-message").style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi khi gửi đơn hàng:", error);
+                    alert("Có lỗi xảy ra, vui lòng thử lại sau!");
+                });
             });
+
+            updatePrice(); // Gọi lúc đầu để hiển thị giá gốc
         });
     </script>
 </body>

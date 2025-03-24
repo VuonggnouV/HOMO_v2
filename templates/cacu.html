@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết quả tính toán</title>
+    <link rel="stylesheet" href="static/cacu.css">
+</head>
+<body>
+    <div class="result-container">
+        <h2>Kết quả tính toán</h2>
+        <div id="distance-display">
+            <strong>Khoảng cách:</strong> <span id="distance"></span>
+        </div>
+        <div id="duration-display">
+            <strong>Thời gian dự kiến:</strong> <span id="duration"></span>
+        </div>
+        <div id="price-display">
+            <strong>Giá tiền:</strong> <span id="price"></span>
+        </div>
+        <button onclick="window.location.href='/'">Quay lại trang chủ</button>
+    </div>
+
+    <script>
+        // Lấy dữ liệu từ localStorage
+        const distance = localStorage.getItem("distance");
+        const price = localStorage.getItem("price");
+        const duration = localStorage.getItem("duration");
+
+        // Hiển thị dữ liệu
+        document.getElementById("distance").innerText = distance;
+        document.getElementById("price").innerText = price;
+        document.getElementById("duration").innerText = duration;
+    </script>
+</body>
+</html>

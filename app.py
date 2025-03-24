@@ -34,6 +34,21 @@ class Driver(db.Model):
     address = db.Column(db.String(255), nullable=False)
     vehicle_type = db.Column(db.String(50), nullable=False)  # Loại xe
 
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    address_from = db.Column(db.String(255), nullable=False)
+    address_to = db.Column(db.String(255), nullable=False)
+    support = db.Column(db.String(10), nullable=False)  # "Có" hoặc "Không"
+    insurance_value = db.Column(db.String(20), nullable=True)  # Giá trị bảo hiểm
+    total_price = db.Column(db.Integer, nullable=False)
+
+class UsedVoucher(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), unique=True, nullable=False)  # Mã order_id đã dùng làm voucher
+    
 # Tạo database nếu chưa có
 with app.app_context():
     db.create_all()
@@ -68,6 +83,26 @@ def register():
         return redirect(url_for('success'))
 
     return render_template('register.html', error=error)
+
+
+@app.route("/validate_voucher")
+def validate_voucher():
+    code = request.args.get("code", "").strip()
+
+    if not code.isdigit():
+        return jsonify(valid=False, reason="invalid")
+
+    # Kiểm tra mã có tồn tại trong đơn hàng không
+    order = Order.query.filter_by(order_id=code).first()
+    if not order:
+        return jsonify(valid=False, reason="invalid")
+
+    # Kiểm tra mã đã được sử dụng chưa
+    used = UsedVoucher.query.filter_by(code=code).first()
+    if used:
+        return jsonify(valid=False, reason="used")  # Gửi thêm lý do để JS hiển thị
+
+    return jsonify(valid=True)
 
 
 
@@ -162,6 +197,51 @@ def booking_page3():
     return render_template('booking3.html')
 
 
+@app.route('/submit_booking', methods=['POST'])
+def submit_booking():
+    try:
+        data = request.json  
+        order_id = str(data.get("order_id"))
+        name = data.get("name")
+        phone = data.get("phone")
+        address_from = data.get("from")
+        address_to = data.get("to")
+        support = "Có" if data.get("support") else "Không"  
+        insurance_value = data.get("insurance_type")  # Lưu trực tiếp giá trị bảo hiểm
+        total_price = int(data.get("total_price"))
+
+        if not name or not phone or not address_from or not address_to or not total_price:
+            return jsonify({"error": "Thiếu thông tin đơn hàng"}), 400
+
+        if Order.query.filter_by(order_id=order_id).first():
+            return jsonify({"error": "Mã đơn hàng đã tồn tại"}), 400
+
+        # Lưu đơn hàng mới
+        new_order = Order(
+            order_id=order_id,
+            name=name,
+            phone=phone,
+            address_from=address_from,
+            address_to=address_to,
+            support=support,
+            insurance_value=insurance_value if insurance_value else None,
+            total_price=total_price
+        )
+        db.session.add(new_order)
+
+        voucher_code = data.get("voucher_code")
+        voucher_discount = data.get("voucher_discount", 0)
+        if voucher_code and int(voucher_discount) > 0:
+            if not UsedVoucher.query.filter_by(code=voucher_code).first():
+                db.session.add(UsedVoucher(code=voucher_code))
+
+        db.session.commit()
+
+        return jsonify({"message": "Đặt xe thành công!", "order_id": order_id})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/address_calculator')
 def address_calculator():
     # Lấy tham số từ query string
@@ -189,6 +269,8 @@ def address_calculator():
         "distance": distance,
         "duration": duration
     })
+
+
 @app.route("/address_suggestions")
 def address_suggestions():
     query = request.args.get("query")

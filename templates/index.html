@@ -78,12 +78,13 @@
                 return;
             }
 
-            suggestions.forEach(addr => {
+            suggestions.forEach(addr => {   
                 let div = document.createElement("div");
                 div.classList.add("dropdown-item");
                 div.innerHTML = addr;
                 div.onclick = function() {
                     document.getElementById(inputId).value = addr;
+                    localStorage.setItem(inputId, addr);
                     dropdown.innerHTML = "";
                     dropdown.style.display = "none";
                 };
@@ -161,7 +162,7 @@
 <!-- Phần hiện tại trong index.html -->
 <div class="pricing">
     <div class="pricing-wrapper">
-        <form action="/booking" method="get">
+        <form action="/booking3" method="get">
             <h2>THAM KHẢO CƯỚC PHÍ</h2>
             
             <!-- Ô input "Từ" và dropdown -->
@@ -209,6 +210,18 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("from").addEventListener("input", function() {
+            localStorage.setItem("from", this.value);
+        });
+
+        document.getElementById("to").addEventListener("input", function() {
+            localStorage.setItem("to", this.value);
+        });
+    });
+    
+</script>
 
     
     <div class="guide">

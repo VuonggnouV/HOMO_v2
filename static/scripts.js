@@ -53,26 +53,44 @@ function updatePrice() {
         })
         .then(data => {
             loadingElement.style.display = 'none';
-            var distance = data.distance / 1000; // Chuyển đổi từ mét sang km
+            var distance = data.distance / 1000; // Chuyển đổi từ mét sang km (giữ nguyên số thập phân)
             var duration = data.duration / 60; // Chuyển đổi từ giây sang phút
 
-            // Tính giá tiền
-            var price = 0;
+            // **Làm tròn lên số km để tính giá**
+            var roundedDistance = Math.ceil(distance);
+
+            // Tính giá tiền theo quy tắc mới
+            var basePrice = 0;
+            var extraPricePerKm = 0;
+
             if (vehicleType === 'ba_gac') {
-                price = distance * 100000;
+                basePrice = 100000; // 2km đầu
+                extraPricePerKm = 10000; // Mỗi km sau đó
             } else if (vehicleType === 'xe_tai_nho') {
-                price = distance * 200000;
+                basePrice = 200000; // 2km đầu
+                extraPricePerKm = 20000; // Mỗi km sau đó
             } else if (vehicleType === 'xe_tai_trung') {
-                price = distance * 300000;
+                basePrice = 250000; // 2km đầu
+                extraPricePerKm = 30000; // Mỗi km sau đó
             }
 
-            // Hiển thị khoảng cách
+            var price = basePrice;
+            if (roundedDistance > 2) {
+                price += (roundedDistance - 2) * extraPricePerKm;
+            }
+
+            // **Hiển thị khoảng cách đúng số thập phân**
             document.getElementById('distance').innerText = `Khoảng cách: ${distance.toFixed(2)} km`;
             distanceDisplay.style.display = 'block';
 
             // Hiển thị giá tiền
             document.getElementById('price').innerText = `Giá tiền: ${price.toLocaleString()} VND`;
             priceDisplay.style.display = 'block';
+            
+            // Lưu vào localStorage
+            localStorage.setItem('distance', distance);
+            localStorage.setItem('price', price);
+
         })
         .catch(error => {
             loadingElement.style.display = 'none';
@@ -83,6 +101,7 @@ function updatePrice() {
             console.error('Lỗi:', error);
         });
 }
+
 
 // Gán sự kiện onchange để tự động cập nhật giá
 fromInput.addEventListener('change', updatePrice);
